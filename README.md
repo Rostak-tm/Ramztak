@@ -97,6 +97,9 @@ The bot will start polling for updates. Open your Telegram app, search for your 
 - **Deposit/Withdraw:** Manage your virtual wallet balance.
 - **Account Status:** Check your current balance and number of active trades.
 
+![image](https://github.com/user-attachments/assets/da34fedc-dc6c-48d0-aa97-9e190b1c95f0)
+
+
 Simply follow the on-screen prompts and use the interactive inline keyboards to navigate through the bot's features.
 
 ---
