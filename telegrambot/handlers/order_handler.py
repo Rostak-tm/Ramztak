@@ -8,22 +8,16 @@ from config import CRYPTO_SERVICE
 async def trade_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Display the user's trade history.
-
-    This function retrieves the user's orders and formats them for display.
-    If no orders are found, it informs the user that there is no trade history.
-
-    :param update: The update object from Telegram.
-    :param context: The context object containing additional data.
-    :return: None. (Sends a message editing the current message with trade history.)
+    :params update: Update - Telegram update object
+    :params context: ContextTypes.DEFAULT_TYPE - Telegram context object
     """
-    # Retrieve the callback query from the update and answer it
     query = update.callback_query
     await query.answer()
 
-    # Get the user based on Telegram user id
+    # Retrieve or create the user based on their Telegram ID
     user = get_or_create_user(str(query.from_user.id))
 
-    # Format the trade history if orders exist, otherwise show a default message
+    # Generate the trade history message: If no orders exist, show a default message
     msg = (
         "No trade history."
         if not user.orders
@@ -33,61 +27,55 @@ async def trade_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Create a keyboard with a "Back to Menu" button
     kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]])
 
-    # Update the message text with the trade history and keyboard
+    # Update the message with the trade history and keyboard
     await query.edit_message_text(msg, reply_markup=kb)
 
 
 async def account_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Display the user's account status including wallet balance and number of orders.
-
-    :param update: The update object from Telegram.
-    :param context: The context object containing additional data.
-    :return: None. (Sends a message editing the current message with account status.)
+    Display the user's account status, including balance and active orders.
+    :params update: Update - Telegram update object
+    :params context: ContextTypes.DEFAULT_TYPE - Telegram context object
     """
     query = update.callback_query
     await query.answer()
 
-    # Retrieve the user by Telegram user id
+    # Retrieve or create the user based on their Telegram ID
     user = get_or_create_user(str(query.from_user.id))
 
-    # Prepare a message with account status details
+    # Prepare the account status text, showing balance and number of orders
     text = f"💼 Account Status:\n💰 Balance: ${user.wallet.balance:.2f}\n📋 Orders: {len(user.orders)}"
 
     # Create a keyboard with a "Back to Menu" button
     kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]])
 
-    # Edit the message to show the account status
+    # Update the message with the account status and keyboard
     await query.edit_message_text(text, reply_markup=kb)
 
 
 async def view_open_trades(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Display all active (open) trades for the user.
-
-    This function filters open orders and displays each with its basic details.
-    A keyboard is provided to view detailed status for each order or to go back to the menu.
-
-    :param update: The update object from Telegram.
-    :param context: The context object containing additional data.
-    :return: None. (Updates the message with open trades information.)
+    Display the user's open trades with options to view details or return to the menu.
+    :params update: Update - Telegram update object
+    :params context: ContextTypes.DEFAULT_TYPE - Telegram context object
     """
     query = update.callback_query
     await query.answer()
 
-    # Retrieve the user using their Telegram user id
+    # Retrieve or create the user based on their Telegram ID
     user = get_or_create_user(str(query.from_user.id))
 
-    # Filter the orders to get only open orders
+    # Filter open orders from the user's order list
     open_orders = [o for o in user.orders if o.status == Order.ORDER_STATUS_OPEN]
 
     if not open_orders:
-        # If no open orders, prepare a simple message and keyboard
+        # If no open orders exist, show a default message
         msg = "No active trades."
         kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]])
     else:
         msgs, buttons = [], []
-        # Build a message and a corresponding button for each open order
+
+        # Generate a summary for each open order
         for i, o in enumerate(open_orders):
             msgs.append(
                 f"Order {i + 1}:\n"
@@ -96,27 +84,25 @@ async def view_open_trades(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"💵 Entry: {o.entry_price:.2f}\n"
                 f"🔢 Leverage: x{o.leverage}"
             )
+            # Add a button for viewing order details
             buttons.append([InlineKeyboardButton(f"ℹ️ Status {i + 1}", callback_data=f"order_detail_{i}")])
 
-        # Append a final button to return to the main menu
+        # Add a "Back to Menu" button at the end
         buttons.append([InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")])
+
+        # Combine all messages into a single string
         msg = "\n---------------------------\n".join(msgs)
         kb = InlineKeyboardMarkup(buttons)
 
-    # Update the message with the open trades and the keyboard
+    # Update the message with the open trades summary and keyboard
     await query.edit_message_text(msg, reply_markup=kb)
 
 
 async def order_detail_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Show detailed information for a selected open order.
-
-    This function extracts the order index from the callback data,
-    retrieves the corresponding open order, and displays its detailed status.
-
-    :param update: The update object from Telegram.
-    :param context: The context object containing additional data.
-    :return: None. (Edits the current message to display order details.)
+    Display detailed information about a specific open order.
+    :params update: Update - Telegram update object
+    :params context: ContextTypes.DEFAULT_TYPE - Telegram context object
     """
     query = update.callback_query
     await query.answer()
@@ -125,20 +111,25 @@ async def order_detail_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         # Extract the order index from the callback data
         idx = int(query.data.split("_")[-1])
     except Exception:
-        # Inform the user if the order index is invalid
+        # Handle invalid index by showing an error message
         await query.edit_message_text("❌ Invalid order index.")
         return
 
+    # Retrieve or create the user based on their Telegram ID
     user = get_or_create_user(str(query.from_user.id))
+
+    # Filter open orders from the user's order list
     open_orders = [o for o in user.orders if o.status == Order.ORDER_STATUS_OPEN]
 
-    # Validate if the index is within the range of open orders
     if idx < 0 or idx >= len(open_orders):
+        # Handle out-of-range index by showing an error message
         await query.edit_message_text("❌ Order not found.")
         return
 
+    # Retrieve the selected order
     order = open_orders[idx]
-    # Retrieve live order details asynchronously
+
+    # Format the order details for display
     details = await format_live_order(order)
 
     # Create a keyboard with options to close, refresh, or go back
@@ -150,33 +141,25 @@ async def order_detail_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         [InlineKeyboardButton("🔙 Back", callback_data="back_to_orders")]
     ])
 
-    # Update the message with order details and the keyboard
+    # Update the message with the order details and keyboard
     await query.edit_message_text(details, reply_markup=kb)
 
 
 async def refresh_order_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Refresh the detailed view of an order.
-
-    This function simply calls the order_detail_handler to update the order status.
-
-    :param update: The update object from Telegram.
-    :param context: The context object containing additional data.
-    :return: None.
+    Refresh the details of a specific open order.
+    :params update: Update - Telegram update object
+    :params context: ContextTypes.DEFAULT_TYPE - Telegram context object
     """
+    # Reuse the order detail handler to refresh the order
     await order_detail_handler(update, context)
 
 
 async def close_order_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Close an open order.
-
-    This function retrieves the selected order, fetches the current price,
-    calculates profit and ROI, and then closes the order. The updated user data is saved.
-
-    :param update: The update object from Telegram.
-    :param context: The context object containing additional data.
-    :return: None. (Updates the message after closing the order and refreshes the open trades view.)
+    Close a specific open order and update the user's data.
+    :params update: Update - Telegram update object
+    :params context: ContextTypes.DEFAULT_TYPE - Telegram context object
     """
     query = update.callback_query
     await query.answer()
@@ -185,32 +168,40 @@ async def close_order_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         # Extract the order index from the callback data
         idx = int(query.data.split("_")[-1])
     except Exception:
+        # Handle invalid index by showing an error message
         await query.edit_message_text("❌ Invalid order index.")
         return
 
+    # Retrieve or create the user based on their Telegram ID
     user = get_or_create_user(str(query.from_user.id))
+
+    # Filter open orders from the user's order list
     open_orders = [o for o in user.orders if o.status == Order.ORDER_STATUS_OPEN]
 
-    # Validate if the extracted index is valid
     if idx < 0 or idx >= len(open_orders):
+        # Handle out-of-range index by showing an error message
         await query.edit_message_text("❌ Order not found.")
         return
 
+    # Retrieve the selected order
     order = open_orders[idx]
+
     try:
-        # Fetch the current price of the cryptocurrency for the order
+        # Get the current price of the cryptocurrency
         cp = await CRYPTO_SERVICE.get_price(order.cryptocurrency)
     except Exception as e:
+        # Handle errors in fetching the price
         await query.edit_message_text(f"❌ Error getting price: {e}")
         return
 
-    # Calculate profit and ROI using the order's manager if available, otherwise fallback
     if hasattr(order, "order_manager"):
+        # Calculate profit and ROI using the order manager
         profit, roi = order.order_manager._calculate_profit_or_loss(cp)
     else:
+        # Use a fallback method to calculate profit and ROI
         profit, roi = fallback_profit_roi(order, cp)
 
-    # Close the order with the calculated profit and ROI
+    # Close the order and update its details
     order.close_order(profit, roi)
     order.closed_profit, order.closed_roi = profit, roi
 
@@ -218,17 +209,18 @@ async def close_order_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     from telegrambot.utils import user_manager
     user_manager.save_users()
 
-    # Inform the user that the order was closed and refresh the open trades view
+    # Notify the user that the order was closed successfully
     await query.edit_message_text("✅ Order closed successfully! Refreshing orders...")
+
+    # Refresh the open trades view
     await view_open_trades(update, context)
 
 
 async def back_to_orders_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Return to the view displaying all open trades.
-
-    :param update: The update object from Telegram.
-    :param context: The context object containing additional data.
-    :return: None. (Calls view_open_trades to update the message.)
+    Return to the open trades view.
+    :params update: Update - Telegram update object
+    :params context: ContextTypes.DEFAULT_TYPE - Telegram context object
     """
+    # Reuse the open trades view to return to the list of open orders
     await view_open_trades(update, context)
