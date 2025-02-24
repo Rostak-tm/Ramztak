@@ -4,10 +4,13 @@
   <img src="https://github.com/user-attachments/assets/2c90e251-4e11-4ca2-bbf1-5f7c8814ef53" alt="Ramztak Logo" width="300" style="border-radius: 45px;">
 </p>
 
+
 <p align="center">
+  
 ![Python](https://img.shields.io/badge/Python-3.12.4-blue?logo=python) 
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Version](https://img.shields.io/badge/Version-1.0.0-orange)
+
 </p>
 
 ---
