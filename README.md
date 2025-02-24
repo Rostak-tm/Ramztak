@@ -1,4 +1,4 @@
-<h1 align="center">🪙 Ramztak 🪙</h1>
+<h1 align="center">**Ramztak**</h1>
 <p align="center">
   <img src="https://github.com/user-attachments/assets/2c90e251-4e11-4ca2-bbf1-5f7c8814ef53" alt="Ramztak Logo" width="300" style="border-radius: 45px;">
 </p>
