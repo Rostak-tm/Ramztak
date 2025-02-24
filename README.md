@@ -1,5 +1,5 @@
 <h1 align="center">Ramztak 🚀</h1>
-![831503353801372015](https://github.com/user-attachments/assets/269b2538-040e-43d1-89f2-0f4c4a3b3d77)
+![logo (2)](https://github.com/user-attachments/assets/2c90e251-4e11-4ca2-bbf1-5f7c8814ef53)
 
 ---
 Welcome to **Ramztak** – a cutting-edge crypto trading simulator bot for Telegram! This project leverages robust trading logic to simulate real-time cryptocurrency trading using live Binance data. While a fully-featured Telegram interface is available, the core trading logic is designed to be modular. This means you, as a contributor, can easily develop and integrate additional interfaces (web, mobile, desktop, etc.) to expand the functionality of **Ramztak**. 💡
