@@ -1,6 +1,6 @@
 <h1 align="center">Ramztak 🚀</h1>
 <p align="center">
-  <img src="https://github-production-user-asset-6210df.s3.amazonaws.com/186723291/416339808-2c90e251-4e11-4ca2-bbf1-5f7c8814ef53.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250224%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250224T183806Z&X-Amz-Expires=300&X-Amz-Signature=5f69c8741873e46ec7902299944a0c91ab36726a9e02a4dd14f3ddff04bef59b&X-Amz-SignedHeaders=host" alt="Ramztak Logo" width="300" style="border-radius: 15px;>
+  <img src="https://github-production-user-asset-6210df.s3.amazonaws.com/186723291/416339808-2c90e251-4e11-4ca2-bbf1-5f7c8814ef53.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250224%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250224T183806Z&X-Amz-Expires=300&X-Amz-Signature=5f69c8741873e46ec7902299944a0c91ab36726a9e02a4dd14f3ddff04bef59b&X-Amz-SignedHeaders=host" alt="Ramztak Logo" width="300">
 </p>
 
 ---
