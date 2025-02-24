@@ -122,7 +122,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-Enjoy **Ramztak** – your gateway to simulated cryptocurrency trading in a fun, interactive, and risk-free environment🎉
+Enjoy **Ramztak**–your gateway to simulated cryptocurrency trading in a fun, interactive, and risk-free environment🎉
 
 ---
 
