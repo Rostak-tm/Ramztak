@@ -34,87 +34,110 @@ from telegrambot.handlers.order_handler import (
     close_order_handler,
     back_to_orders_handler
 )
-from .utils import CRYPTO, TRADE_TYPE, AMOUNT, LEVERAGE, TP, SL, CONFIRM, DEPOSIT_AMOUNT, WITHDRAW_AMOUNT
+from telegrambot.utils import CRYPTO, TRADE_TYPE, AMOUNT, LEVERAGE, TP, SL, CONFIRM, DEPOSIT_AMOUNT, WITHDRAW_AMOUNT
 
 def main():
     """
     Initialize and run the Telegram bot application.
 
-    This function sets up logging, builds the bot application with the provided token,
-    registers various conversation and callback query handlers for trading, deposits,
-    withdrawals, and order management, and then starts polling for updates.
+    This function sets up the bot by configuring logging, defining conversation handlers for
+    various user interactions (e.g., trade opening, deposits, withdrawals), and registering
+    command and callback query handlers. The bot is then started in polling mode.
     """
-    # Configure logging to display timestamp, module name, log level, and message
+    # Configure logging to display bot-related messages with timestamps and log levels
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         level=logging.INFO
     )
 
-    # Build the Telegram bot application using the bot token
+    # Build the Telegram bot application using the provided token
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
-    # Define a conversation handler for the trade opening process
+    # Conversation handler for the trade opening process
     trade_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(open_trade_crypto, pattern="^open_trade$")],
+        entry_points=[
+            CallbackQueryHandler(open_trade_crypto, pattern="^open_trade$")
+        ],  # Entry point triggered when the user selects "open_trade"
         states={
-            # State for selecting cryptocurrency; callback data starts with "crypto_"
-            CRYPTO: [CallbackQueryHandler(crypto_handler, pattern="^crypto_")],
-            # State for selecting trade type; expects callback data "trade_long" or "trade_short"
-            TRADE_TYPE: [CallbackQueryHandler(trade_type_handler, pattern="^(trade_long|trade_short)$")],
-            # State for entering the trade amount; accepts any text that is not a command
-            AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, amount_handler)],
-            # State for entering leverage; accepts any text that is not a command
-            LEVERAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, leverage_handler)],
-            # State for entering the Take Profit (TP) price
-            TP: [MessageHandler(filters.TEXT & ~filters.COMMAND, tp_handler)],
-            # State for entering the Stop Loss (SL) price
-            SL: [MessageHandler(filters.TEXT & ~filters.COMMAND, sl_handler)],
-            # State for confirming the trade; accepts callback data "confirm_trade" or "cancel"
-            CONFIRM: [CallbackQueryHandler(confirm_handler, pattern="^(confirm_trade|cancel)$")],
+            CRYPTO: [
+                CallbackQueryHandler(cancel, pattern="^cancel$"),  # Allows cancellation at any step
+                CallbackQueryHandler(crypto_handler, pattern="^crypto_")  # Handles cryptocurrency selection
+            ],
+            TRADE_TYPE: [
+                CallbackQueryHandler(cancel, pattern="^cancel$"),  # Allows cancellation at any step
+                CallbackQueryHandler(trade_type_handler, pattern="^(trade_long|trade_short)$")  # Handles trade type selection
+            ],
+            AMOUNT: [
+                CallbackQueryHandler(cancel, pattern="^cancel$"),  # Allows cancellation at any step
+                MessageHandler(filters.TEXT & ~filters.COMMAND, amount_handler)  # Handles trade amount input
+            ],
+            LEVERAGE: [
+                CallbackQueryHandler(cancel, pattern="^cancel$"),  # Allows cancellation at any step
+                MessageHandler(filters.TEXT & ~filters.COMMAND, leverage_handler)  # Handles leverage input
+            ],
+            TP: [
+                CallbackQueryHandler(cancel, pattern="^cancel$"),  # Allows cancellation at any step
+                MessageHandler(filters.TEXT & ~filters.COMMAND, tp_handler)  # Handles take-profit input
+            ],
+            SL: [
+                CallbackQueryHandler(cancel, pattern="^cancel$"),  # Allows cancellation at any step
+                MessageHandler(filters.TEXT & ~filters.COMMAND, sl_handler)  # Handles stop-loss input
+            ],
+            CONFIRM: [
+                CallbackQueryHandler(confirm_handler, pattern="^confirm_trade$"),  # Confirms trade details
+                CallbackQueryHandler(cancel, pattern="^cancel$")  # Allows cancellation at confirmation step
+            ],
         },
-        # Fallback command to cancel the trade process
-        fallbacks=[CommandHandler("cancel", cancel)]
+        fallbacks=[CommandHandler("cancel", cancel)]  # Fallback command to cancel the conversation
     )
 
-    # Define a conversation handler for the deposit process
+    # Conversation handler for the deposit process
     deposit_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(deposit_start, pattern="^deposit$")],
+        entry_points=[
+            CallbackQueryHandler(deposit_start, pattern="^deposit$")
+        ],  # Entry point triggered when the user selects "deposit"
         states={
-            # State for entering the deposit amount
-            DEPOSIT_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, deposit_amount_handler)]
+            DEPOSIT_AMOUNT: [
+                CallbackQueryHandler(cancel, pattern="^cancel$"),  # Allows cancellation at any step
+                MessageHandler(filters.TEXT & ~filters.COMMAND, deposit_amount_handler)  # Handles deposit amount input
+            ]
         },
-        fallbacks=[CommandHandler("cancel", cancel)]
+        fallbacks=[CommandHandler("cancel", cancel)]  # Fallback command to cancel the conversation
     )
 
-    # Define a conversation handler for the withdrawal process
+    # Conversation handler for the withdrawal process
     withdraw_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(withdraw_start, pattern="^withdraw$")],
+        entry_points=[
+            CallbackQueryHandler(withdraw_start, pattern="^withdraw$")
+        ],  # Entry point triggered when the user selects "withdraw"
         states={
-            # State for entering the withdrawal amount
-            WITHDRAW_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_handler)]
+            WITHDRAW_AMOUNT: [
+                CallbackQueryHandler(cancel, pattern="^cancel$"),  # Allows cancellation at any step
+                MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_handler)  # Handles withdrawal amount input
+            ]
         },
-        fallbacks=[CommandHandler("cancel", cancel)]
+        fallbacks=[CommandHandler("cancel", cancel)]  # Fallback command to cancel the conversation
     )
 
     # Register callback query handlers for main menu and order management actions
     app.add_handler(CallbackQueryHandler(
         main_menu_callback, pattern="^(view_open_trades|trade_history|account_status|back_to_menu)$"
-    ))
+    ))  # Handles main menu navigation and related actions
     app.add_handler(CallbackQueryHandler(
         order_detail_handler, pattern="^order_detail_\\d+$"
-    ))
+    ))  # Handles viewing details of a specific order
     app.add_handler(CallbackQueryHandler(
         refresh_order_handler, pattern="^refresh_order_\\d+$"
-    ))
+    ))  # Handles refreshing the status of a specific order
     app.add_handler(CallbackQueryHandler(
         close_order_handler, pattern="^close_order_\\d+$"
-    ))
+    ))  # Handles closing a specific order
     app.add_handler(CallbackQueryHandler(
         back_to_orders_handler, pattern="^back_to_orders$"
-    ))
+    ))  # Handles returning to the orders list
     app.add_handler(CallbackQueryHandler(
         home_handler, pattern="^home$"
-    ))
+    ))  # Handles returning to the home/main menu
 
     # Add conversation handlers for trade, deposit, and withdrawal processes
     app.add_handler(trade_conv)
@@ -122,8 +145,8 @@ def main():
     app.add_handler(withdraw_conv)
 
     # Register basic command handlers for starting and canceling operations
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("cancel", cancel))
+    app.add_handler(CommandHandler("start", start))  # Handles the "/start" command
+    app.add_handler(CommandHandler("cancel", cancel))  # Handles the "/cancel" command
 
-    # Start polling for updates from Telegram
+    # Start the bot in polling mode
     app.run_polling()
