@@ -68,10 +68,10 @@ async def crypto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
         [InlineKeyboardButton("❌ Cancel", callback_data="cancel")]
     ]
-
+    symbol_price = await CRYPTO_SERVICE.get_price(symbol)
     # Prompt the user to select a trade type
     await query.edit_message_text(
-        f"💱 Selected: {symbol}\n\nPlease select trade type:",
+        f"💱 Selected: {symbol} - price (${symbol_price})\n\nPlease select trade type:",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
     return TRADE_TYPE

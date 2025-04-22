@@ -5,6 +5,8 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from accounts.models.user import User, UserManager
 from accounts.models.order import Order
 from config import CRYPTO_SERVICE
+from telegram import Bot
+from config import TELEGRAM_BOT_TOKEN
 
 # Conversation states
 CRYPTO, TRADE_TYPE, AMOUNT, LEVERAGE, TP, SL, CONFIRM, DEPOSIT_AMOUNT, WITHDRAW_AMOUNT = range(9)
@@ -160,3 +162,12 @@ def override_crypto_price(price: float):
     finally:
         # Restore the original price-fetching function after use
         CRYPTO_SERVICE.get_price = original
+
+async def send_message_to_user(telegram_userid: str, text: str):
+    """
+    Send a message directly to a user by their Telegram user ID.
+    :param telegram_userid: str - Telegram user ID
+    :param text: str - Message text
+    """
+    bot = Bot(token=TELEGRAM_BOT_TOKEN)
+    await bot.send_message(chat_id=telegram_userid, text=text)
