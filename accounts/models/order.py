@@ -2,7 +2,6 @@ import asyncio
 from datetime import datetime
 from config import CRYPTO_SERVICE
 
-
 class Order:
     """
     Represents a cryptocurrency trading order.
@@ -35,7 +34,7 @@ class Order:
         :param order_type: Type of the order ("long" or "short").
         :raises ValueError: If the owner has insufficient balance.
         """
-        self.owner = owner
+        self.owner: "User" = owner
         self.cryptocurrency = cryptocurrency
         self.amount = amount
         self.tp = tp
@@ -60,6 +59,12 @@ class Order:
         self._open_at = datetime.now()
         self._closed_at = None
         self._status = Order.ORDER_STATUS_OPEN
+        self.closed_profit = None
+        self.closed_roi = None
+        self._manager_task = None
+        from accounts.models.order import OrderManager
+        self.order_manager = OrderManager(self)
+        self._start_manager()
 
     @property
     def status(self):
@@ -88,23 +93,40 @@ class Order:
         """
         return self._closed_at
 
+    def _start_manager(self):
+        """
+        Start the order manager coroutine if not already started.
+        """
+        if self._manager_task is None or self._manager_task.done():
+            try:
+                self._manager_task = asyncio.create_task(self.order_manager.start())
+            except Exception as e:
+                print(f"Failed to start OrderManager coroutine: {e}")
+
     def close_order(self, profit_dollar: float, roi: float):
         """
         Close the order and deposit the profit (or loss) back to the owner's wallet.
-
-        :param profit_dollar: The profit (or negative loss) in dollars.
-        :param roi: The return on investment as a percentage.
-        :return: A dictionary containing order closure details.
         """
         if self._status == Order.ORDER_STATUS_CLOSED:
             return
-
-        # Update order closure time and status.
         self._closed_at = datetime.now()
         self._status = Order.ORDER_STATUS_CLOSED
-
-        # Deposit the original amount plus profit into the user's wallet.
-        self.owner.wallet.deposit(self.amount + profit_dollar)
+        self.closed_profit = profit_dollar
+        self.closed_roi = roi
+        if self.amount + profit_dollar >= 0:
+            self.owner.wallet.deposit(self.amount + profit_dollar)
+        else:
+            self.owner.wallet.withdraw(self.amount)
+        if hasattr(self, "order_manager"):
+            self.order_manager.stop()
+        # Send notification to user via bot
+        try:
+            from telegrambot.utils import send_message_to_user
+            message = f"Your order has been closed.\n{str(self)}\nProfit: ${profit_dollar:.2f}\nROI: {roi:.2f}%\nClosed at: {self._closed_at}"
+            # Schedule the coroutine to send the message
+            asyncio.create_task(send_message_to_user(str(self.owner.telegram_userid), message))
+        except Exception as e:
+            print(f"Failed to send order close notification: {e}")
         return {
             "order_status": self._status,
             "roi": roi,
@@ -133,10 +155,17 @@ class OrderManager:
         :param order: The Order instance to manage.
         :param polling_interval: Time in seconds between price checks.
         """
-        self.order = order
+        self.order: Order = order
         self.polling_interval = polling_interval
         self.last_message = ""
         self._running = False
+        
+    def save_changes(self):
+        """
+        Save changes to the order.
+        """
+        from telegrambot.utils import user_manager
+        user_manager.save_users()
 
     async def start(self):
         """
@@ -152,9 +181,6 @@ class OrderManager:
                 # Get the current price asynchronously
                 current_price = await CRYPTO_SERVICE.get_price(self.order.cryptocurrency)
                 profit, roi = self._calculate_profit_or_loss(current_price)
-                self.last_message = (
-                    f"Current Price: {current_price} | ROI: {roi:.2f}% | Profit: {profit:.2f}$"
-                )
 
                 # Check conditions for LONG orders.
                 if self.order.order_type == self.order.ORDER_TYPE_LONG:
@@ -166,10 +192,10 @@ class OrderManager:
                         self.last_message = f"Stop Loss hit at {current_price}, closing order..."
                         self.order.close_order(profit, roi)
                         break
-                    # Liquidation condition if no stop loss is set.
-                    elif not self.order.sl and profit <= -self.order.amount:
+                    # Liquidation condition.
+                    elif profit <= -1 * self.order.amount:
                         self.last_message = f"Liquidation: Loss reached order amount at {current_price}, closing order..."
-                        self.order.close_order(-self.order.amount, roi)
+                        self.order.close_order(-1 * self.order.amount, roi)
                         break
 
                 # Check conditions for SHORT orders.
@@ -182,7 +208,7 @@ class OrderManager:
                         self.last_message = f"Stop Loss hit at {current_price}, closing order..."
                         self.order.close_order(profit, roi)
                         break
-                    elif not self.order.sl and profit <= -self.order.amount:
+                    elif profit <= -self.order.amount:
                         self.last_message = f"Liquidation: Loss reached order amount at {current_price}, closing order..."
                         self.order.close_order(-self.order.amount, roi)
                         break
@@ -193,6 +219,10 @@ class OrderManager:
                 break
 
         self._running = False
+        self.save_changes()
+        self.last_message += f"Current Price: {current_price} | ROI: {roi:.2f}% | Profit: {profit:.2f}$"
+        from telegrambot.utils import send_message_to_user
+        asyncio.create_task(send_message_to_user(str(self.order.owner.telegram_userid), self.last_message))
         return self.last_message
 
     def _calculate_profit_or_loss(self, current_price: float):

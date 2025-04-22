@@ -24,7 +24,7 @@ class Wallet:
         :param amount: The amount to deposit.
         :raises ValueError: If the deposit amount is not greater than zero.
         """
-        if amount <= 0:
+        if amount < 0:
             raise ValueError("Deposit amount must be greater than zero")
         self._balance += amount  # Add the deposit amount to the current balance
 
